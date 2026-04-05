@@ -16,7 +16,7 @@ const UserHome = () => {
   const [showCategories, setShowCategories] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("home");
 
   useEffect(() => {
     const load = async () => {
@@ -120,6 +120,7 @@ const UserHome = () => {
       });
       setCart({});
       await refreshOrders();
+      setActiveTab("profile");
     } catch (err) {
       setError(err.message || "Order failed");
     }
@@ -129,6 +130,7 @@ const UserHome = () => {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
+  const cartCount = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
 
   const filteredProducts = products.filter((product) => {
     const normalizedCategory = product.category === "paint" ? "Interior" : product.category;
@@ -141,8 +143,8 @@ const UserHome = () => {
     return normalizedCategory === selectedCategory;
   });
 
-  const statusLabel = (status) => {
-    switch (status) {
+  const statusLabel = (orderStatus) => {
+    switch (orderStatus) {
       case "pending":
         return "Received (waiting for admin approval)";
       case "confirmed":
@@ -154,13 +156,13 @@ const UserHome = () => {
       case "cancelled":
         return "Cancelled";
       default:
-        return status;
+        return orderStatus;
     }
   };
 
   return (
-    <div className="page">
-      {!selectedCategory && (
+    <div className="page user-page-with-tabs">
+      {activeTab === "home" && !selectedCategory && (
         <header className="hero hero-no-image">
           <nav className="hero-nav sticky-nav user-hero-nav">
             <div className="brand">
@@ -171,23 +173,9 @@ const UserHome = () => {
               </span>
             </div>
             <div className="user-nav-actions">
-              <button
-                className="menu-btn"
-                type="button"
-                aria-expanded={menuOpen}
-                aria-controls="user-nav"
-                onClick={() => setMenuOpen((prev) => !prev)}
-              >
-                Menu
-              </button>
               <button className="btn ghost tiny nav-signout" type="button" onClick={logout}>
                 Sign out
               </button>
-            </div>
-            <div className={`nav-links nav-links--menu ${menuOpen ? "open" : ""}`} id="user-nav">
-              <Link to="/user">Home</Link>
-              <a href="#collections">Collections</a>
-              <a href="#story">Our Story</a>
             </div>
           </nav>
 
@@ -211,8 +199,8 @@ const UserHome = () => {
                 >
                   Browse products
                 </a>
-                <button className="btn secondary" type="button">
-                  Talk to a specialist
+                <button className="btn secondary" type="button" onClick={() => setActiveTab("cart")}>
+                  Go to cart
                 </button>
               </div>
             </div>
@@ -220,206 +208,260 @@ const UserHome = () => {
         </header>
       )}
 
-      <section id="collections" className="section">
-        <div className="section-head">
-          <div>
-            <h2>Latest collections</h2>
-            <p>Hand-picked finishes with durability and depth.</p>
-          </div>
-          <button className="btn ghost" type="button">
-            View catalog
-          </button>
-        </div>
-
-        {status === "loading" && <div className="status">Loading products...</div>}
-        {status === "error" && <div className="form-error">{error}</div>}
-
-        {showCategories && !selectedCategory ? (
-          <div className="category-grid">
-            {categories.map((category) => (
-              <button
-                key={category}
-                className="category-card"
-                type="button"
-                onClick={() => {
-                  setSelectedCategory(category);
-                  setSelectedSubcategory("");
-                }}
-              >
-                <strong>{category}</strong>
-                <span>Browse products</span>
-              </button>
-            ))}
-          </div>
-        ) : selectedCategory === "Made to order" && !selectedSubcategory ? (
-          <div className="category-grid">
-            {madeToOrderSubcategories.map((subcategory) => (
-              <button
-                key={subcategory}
-                className="category-card"
-                type="button"
-                onClick={() => setSelectedSubcategory(subcategory)}
-              >
-                <strong>Made to order</strong>
-                <span>{subcategory}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <>
-            {showCategories && (
-              <div className="category-actions">
-                <button
-                  className="btn ghost"
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory("");
-                    setSelectedSubcategory("");
-                  }}
-                >
-                  Back to categories
-                </button>
-                {selectedCategory && (
-                  <span className="category-tag">
-                    {selectedCategory}
-                    {selectedSubcategory ? ` / ${selectedSubcategory}` : ""}
-                  </span>
-                )}
+      {activeTab === "home" && (
+        <>
+          <section id="collections" className="section">
+            <div className="section-head">
+              <div>
+                <h2>Latest collections</h2>
+                <p>Hand-picked finishes with durability and depth.</p>
               </div>
-            )}
-            <div className="product-grid">
-              {filteredProducts.map((product) => (
-                <article key={product._id} className="product-card">
-                  <div className="product-media">
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} />
-                    ) : (
-                      <div className="placeholder" />
+              <Link className="btn ghost" to="/catalog">
+                View catalog
+              </Link>
+            </div>
+
+            {status === "loading" && <div className="status">Loading products...</div>}
+            {status === "error" && <div className="form-error">{error}</div>}
+
+            {showCategories && !selectedCategory ? (
+              <div className="category-grid">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    className="category-card"
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setSelectedSubcategory("");
+                    }}
+                  >
+                    <strong>{category}</strong>
+                    <span>Browse products</span>
+                  </button>
+                ))}
+              </div>
+            ) : selectedCategory === "Made to order" && !selectedSubcategory ? (
+              <div className="category-grid">
+                {madeToOrderSubcategories.map((subcategory) => (
+                  <button
+                    key={subcategory}
+                    className="category-card"
+                    type="button"
+                    onClick={() => setSelectedSubcategory(subcategory)}
+                  >
+                    <strong>Made to order</strong>
+                    <span>{subcategory}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <>
+                {showCategories && (
+                  <div className="category-actions">
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory("");
+                        setSelectedSubcategory("");
+                      }}
+                    >
+                      Back to categories
+                    </button>
+                    {selectedCategory && (
+                      <span className="category-tag">
+                        {selectedCategory}
+                        {selectedSubcategory ? ` / ${selectedSubcategory}` : ""}
+                      </span>
                     )}
                   </div>
-                  <div className="product-body">
-                    <h3>{product.name}</h3>
-                    <p>{product.description || "Refined finish with balanced tone and coverage."}</p>
-                    <div className="product-meta">
-                      <span className="price">Ksh {Number(product.price).toFixed(2)}</span>
-                      <button className="btn primary small" onClick={() => addToCart(product)}>
-                        Add to cart
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {showCategories && filteredProducts.length === 0 && (
-              <div className="status">No products found in this category yet.</div>
+                )}
+                <div className="product-grid">
+                  {filteredProducts.map((product) => (
+                    <article key={product._id} className="product-card">
+                      <div className="product-media">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt={product.name} />
+                        ) : (
+                          <div className="placeholder" />
+                        )}
+                      </div>
+                      <div className="product-body">
+                        <h3>{product.name}</h3>
+                        <p>{product.description || "Refined finish with balanced tone and coverage."}</p>
+                        <div className="product-meta">
+                          <span className="price">Ksh {Number(product.price).toFixed(2)}</span>
+                          <button className="btn primary small" onClick={() => addToCart(product)}>
+                            Add to cart
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                {showCategories && filteredProducts.length === 0 && (
+                  <div className="status">No products found in this category yet.</div>
+                )}
+              </>
             )}
-          </>
-        )}
-      </section>
+          </section>
 
-      <section className="section alt">
-        <div className="section-head">
-          <div>
-            <h2>Your cart</h2>
-            <p>Review items before sending the order for admin approval.</p>
-          </div>
-        </div>
-
-        <div className="cart-list">
-          {Object.values(cart).length === 0 && <div className="status">No items yet.</div>}
-          {Object.values(cart).map((item) => (
-            <div key={item.product._id} className="cart-row">
+          <section id="story" className="section alt">
+            <div className="story-grid">
               <div>
-                <h3>{item.product.name}</h3>
-                <p>Ksh {Number(item.product.price).toFixed(2)}</p>
+                <h2>Designed for modern living</h2>
+                <p>
+                  Jotun Eastern Bypass Shop blends craftsmanship with modern efficiency. Every finish is tested for
+                  color fidelity and resilience so your spaces stay vibrant longer.
+                </p>
               </div>
-              <div className="cart-actions">
-                <button
-                  className="btn ghost"
-                  onClick={() => updateQty(item.product._id, item.quantity - 1)}
-                >
-                  -
-                </button>
-                <span>{item.quantity}</span>
-                <button
-                  className="btn ghost"
-                  onClick={() => updateQty(item.product._id, item.quantity + 1)}
-                >
-                  +
-                </button>
-                <strong>Ksh {(item.product.price * item.quantity).toFixed(2)}</strong>
-              </div>
+              <ul className="story-list">
+                <li>Low-odor, low-VOC formulations</li>
+                <li>Professional color matching</li>
+                <li>Trusted by designers and builders</li>
+              </ul>
             </div>
-          ))}
-          <div className="cart-total">
-            <span>Total</span>
-            <strong>Ksh {total.toFixed(2)}</strong>
-          </div>
-          <div className="cart-submit">
-            <button className="btn primary" type="button" onClick={placeOrder}>
-              Send order
+          </section>
+
+          <section className="section cta-band">
+            <div>
+              <h2>Need bulk orders or custom palettes?</h2>
+              <p>Our advisors help you spec, schedule, and deliver on time.</p>
+            </div>
+            <button className="btn primary">Schedule consultation</button>
+          </section>
+
+          <footer className="footer">
+            <span>&copy; 2026 Jotun Eastern Bypass Shop. All rights reserved.</span>
+            <span>Crafted for color-forward homes.</span>
+          </footer>
+        </>
+      )}
+
+      {activeTab === "cart" && (
+        <section className="section alt">
+          <div className="section-head">
+            <div>
+              <h2>Your cart</h2>
+              <p>Review items before sending the order for admin approval.</p>
+            </div>
+            <button className="btn ghost" type="button" onClick={() => setActiveTab("home")}>
+              Continue shopping
             </button>
           </div>
-        </div>
-      </section>
 
-      <section className="section">
-        <div className="section-head">
-          <div>
-            <h2>Order updates</h2>
-            <p>Admins will confirm availability and notify you when orders are ready.</p>
-          </div>
-        </div>
-        <div className="order-list">
-          {orders.length === 0 && <div className="status">No orders yet.</div>}
-          {orders.map((order) => (
-            <div key={order._id} className="order-card">
-              <div>
-                <h3>Order #{order._id.slice(-6).toUpperCase()}</h3>
-                <p>Status: {statusLabel(order.status)}</p>
-                {order.adminNote && <p className="order-note">{order.adminNote}</p>}
+          {error && <div className="form-error">{error}</div>}
+
+          <div className="cart-list">
+            {Object.values(cart).length === 0 && <div className="status">No items yet.</div>}
+            {Object.values(cart).map((item) => (
+              <div key={item.product._id} className="cart-row">
+                <div>
+                  <h3>{item.product.name}</h3>
+                  <p>Ksh {Number(item.product.price).toFixed(2)}</p>
+                </div>
+                <div className="cart-actions">
+                  <button
+                    className="btn ghost"
+                    onClick={() => updateQty(item.product._id, item.quantity - 1)}
+                  >
+                    -
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    className="btn ghost"
+                    onClick={() => updateQty(item.product._id, item.quantity + 1)}
+                  >
+                    +
+                  </button>
+                  <strong>Ksh {(item.product.price * item.quantity).toFixed(2)}</strong>
+                </div>
               </div>
-              <div className="order-meta">
-                <span>Total: Ksh {Number(order.total).toFixed(2)}</span>
-                <span>Items: {order.items?.length || 0}</span>
-              </div>
+            ))}
+            <div className="cart-total">
+              <span>Total</span>
+              <strong>Ksh {total.toFixed(2)}</strong>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="story" className="section alt">
-        <div className="story-grid">
-          <div>
-            <h2>Designed for modern living</h2>
-            <p>
-              Jotun Eastern Bypass Shop blends craftsmanship with modern efficiency. Every finish is tested for color
-              fidelity and resilience so your spaces stay vibrant longer.
-            </p>
+            <div className="cart-submit">
+              <button className="btn primary" type="button" onClick={placeOrder}>
+                Send order
+              </button>
+            </div>
           </div>
-          <ul className="story-list">
-            <li>Low-odor, low-VOC formulations</li>
-            <li>Professional color matching</li>
-            <li>Trusted by designers and builders</li>
-          </ul>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section className="section cta-band">
-        <div>
-          <h2>Need bulk orders or custom palettes?</h2>
-          <p>Our advisors help you spec, schedule, and deliver on time.</p>
-        </div>
-        <button className="btn primary">Schedule consultation</button>
-      </section>
+      {activeTab === "profile" && (
+        <section className="section">
+          <div className="section-head">
+            <div>
+              <h2>Profile</h2>
+              <p>Account details and order status updates.</p>
+            </div>
+            <button className="btn ghost" type="button" onClick={logout}>
+              Sign out
+            </button>
+          </div>
 
-      <footer className="footer">
-        <span>&copy; 2026 Jotun Eastern Bypass Shop. All rights reserved.</span>
-        <span>Crafted for color-forward homes.</span>
-      </footer>
+          <div className="profile-card">
+            <h3>{user?.name || "User"}</h3>
+            <p>{user?.email || "No email available"}</p>
+            <p>Role: {user?.role || "customer"}</p>
+          </div>
+
+          <div className="section-head profile-orders-head">
+            <div>
+              <h2>Order updates</h2>
+              <p>Admins will confirm availability and notify you when orders are ready.</p>
+            </div>
+          </div>
+
+          <div className="order-list">
+            {orders.length === 0 && <div className="status">No orders yet.</div>}
+            {orders.map((order) => (
+              <div key={order._id} className="order-card">
+                <div>
+                  <h3>Order #{order._id.slice(-6).toUpperCase()}</h3>
+                  <p>Status: {statusLabel(order.status)}</p>
+                  {order.adminNote && <p className="order-note">{order.adminNote}</p>}
+                </div>
+                <div className="order-meta">
+                  <span>Total: Ksh {Number(order.total).toFixed(2)}</span>
+                  <span>Items: {order.items?.length || 0}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <nav className="user-tabbar" aria-label="User tabs">
+        <button
+          className={`user-tab ${activeTab === "home" ? "active" : ""}`}
+          type="button"
+          onClick={() => setActiveTab("home")}
+        >
+          Home
+        </button>
+        <button
+          className={`user-tab ${activeTab === "cart" ? "active" : ""}`}
+          type="button"
+          onClick={() => setActiveTab("cart")}
+        >
+          Cart
+          <span className="user-tab-badge">{cartCount}</span>
+        </button>
+        <button
+          className={`user-tab ${activeTab === "profile" ? "active" : ""}`}
+          type="button"
+          onClick={() => setActiveTab("profile")}
+        >
+          Profile
+        </button>
+      </nav>
     </div>
   );
 };
 
 export default UserHome;
-
